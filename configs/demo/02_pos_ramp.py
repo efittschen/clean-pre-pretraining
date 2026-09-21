@@ -13,15 +13,6 @@ arms on the same words, the same trained tokenizer and the same model:
     ramp_no_prior    the ramp from a fresh init.
     plain            ordinary training on the same words.  The baseline.
 
-The tag tokens carry a private-use marker, so they never occur in natural
-text and the word side of the aligned stream is byte-identical to the plain
-tokenization: the three dev perplexities sit on one axis (the ramp arms are
-scored on the word side with the tag columns masked out).
-
-Not a result: one seed, round-number learning rates rather than the searched
-pins, and a scale far below configs/pos_ramp/.  It shows the shape of that
-unit.  Add eval_config("lm_harness", tasks="blimp") to a Stage-B block for
-the grammaticality score; it costs more than the training here.
 """
 from experiment_dsl import (model_config, dataset_config, scheduler_config,
                             training_config, eval_config, transition_config,

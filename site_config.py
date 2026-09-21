@@ -5,7 +5,7 @@ partitions, memory, per-GPU batch table)."""
 # SECTION 1: site values
 # ---------------------------------------------------------------------------
 
-ENGINE = "slurm"          # "slurm" | "local"
+ENGINE = "local"          # "slurm" | "local"
 STEAMROLLER_ENGINE = ENGINE
 GPU_COUNT = 1
 MEMORY = "64GB"

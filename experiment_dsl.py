@@ -316,6 +316,7 @@ def training_config(total_train=5000, total_dev=5000, checkpoint_interval=None, 
     
     # Round to whole batches.
     batch_tokens = batch_size * sequence_length
+    requested_train_tokens = total_train  # names the run path; TRAIN_TOKENS below is the fitted value
     actual_training_tokens = int(total_train // batch_tokens) * batch_tokens
     actual_dev_tokens = int(total_dev // batch_tokens) * batch_tokens
     # Unrounded total, so the final-epoch checkpoint survives rounding.
@@ -371,6 +372,7 @@ def training_config(total_train=5000, total_dev=5000, checkpoint_interval=None, 
                                 "RETURN_CHECKPOINTS" : return_checkpoints,
                                 "SEQUENCE_LENGTH" : sequence_length,
                                 "TRAIN_TOKENS" : total_train,
+                                "TRAIN_TOKENS_REQUESTED" : requested_train_tokens,
                                 "DEV_TOKENS" : total_dev,
                                 "BATCH_SIZE" : batch_size,
                                 "GPUS" : gpus,
@@ -414,7 +416,7 @@ def training_config(total_train=5000, total_dev=5000, checkpoint_interval=None, 
         config_dict["CONFIG"]["MODEL_LOAD"] = model_load
     if freeze_final_norm is not None:
         config_dict["CONFIG"]["FREEZE_FINAL_NORM"] = bool(freeze_final_norm)
-    # Outside the hash signature: changing them keeps the cache.
+    # Dropped from training_config.json by the SConstruct, so changing them never retrains.
     if slurm_time is not None:
         config_dict["CONFIG"]["SLURM_TIME"] = slurm_time
     if slurm_memory is not None:

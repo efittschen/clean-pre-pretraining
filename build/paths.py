@@ -105,6 +105,16 @@ def format_lr(learning_rate):
     return f"{learning_rate:.0e}"
 
 
+def format_tokens(n):
+    """Token budget as a path segment: 2_000_000 -> '2M', 1_250_000 -> '1.25M',
+    100_000 -> '100k'; anything that is not a round number stays exact."""
+    if n >= 1_000_000 and n % 10_000 == 0:
+        return f"{n / 1_000_000:g}M"
+    if n >= 1_000 and n % 1_000 == 0:
+        return f"{n // 1_000}k"
+    return str(n)
+
+
 def get_combinations(stages, parents=[None], parent_key="parent"):
     non_product_keys = {"evaluation"}
     for stage in stages:

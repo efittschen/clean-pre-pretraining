@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(Dir(".").abspath, "build"))
 
 import site_config
 from build.paths import (
-    POS_STREAM_KEYS, dataset_path_name, format_lr, get_combinations,
+    POS_STREAM_KEYS, dataset_path_name, format_lr, format_tokens, get_combinations,
     get_tokenizer_id, pos_tokenizer_dataset_name, pos_transition_pretok_name,
     transition_path_name,
 )
@@ -899,18 +899,10 @@ def get_training(model, training_config, scheduler_config, dataset_config, datas
                 tokenized[f"{key}_{k}"] = stream_node
         dataset = tokenized
 
-    # The hash excludes what does not change the model.
-    altered_training_config = copy.deepcopy(training_config)
-    altered_training_config["CONFIG"].pop("CHECKPOINT_LIST_TOKENS", None)
-    altered_training_config["CONFIG"].pop("CHECKPOINT_LIST_STEPS", None)
-    altered_training_config["CONFIG"].pop("GPUS", None)
-    altered_training_config["HUGGINGFACE_CONFIG"].pop("per_device_train_batch_size", None)
-    altered_training_config["HUGGINGFACE_CONFIG"].pop("per_device_eval_batch_size", None)
-    altered_training_config["HUGGINGFACE_CONFIG"].pop("gradient_accumulation_steps", None)
+    # Slurm limits are read here and dropped from the config written to
+    # training_config.json (an SCons source), so changing them never retrains.
     slurm_time = training_config["CONFIG"].get("SLURM_TIME", "72:00:00")
     slurm_memory = training_config["CONFIG"].get("SLURM_MEMORY", "48GB")
-    altered_training_config["CONFIG"].pop("SLURM_TIME", None)
-    altered_training_config["CONFIG"].pop("SLURM_MEMORY", None)
     training_config = copy.deepcopy(training_config)
     training_config["CONFIG"].pop("SLURM_TIME", None)
     training_config["CONFIG"].pop("SLURM_MEMORY", None)
@@ -931,7 +923,8 @@ def get_training(model, training_config, scheduler_config, dataset_config, datas
         return [ModelRef(copied_model, flag=training_flag, slurm=model.slurm)]
 
     ds_name = dataset_path_name(dataset_config)[0]
-    train_tokens_M = training_config['CONFIG']['TRAIN_TOKENS'] // 1_000_000
+    train_tokens = training_config['CONFIG'].get('TRAIN_TOKENS_REQUESTED',
+                                                 training_config['CONFIG']['TRAIN_TOKENS'])
     batch_size = training_config['CONFIG']['BATCH_SIZE']
     learning_rate = training_config['HUGGINGFACE_CONFIG']['learning_rate']
     weight_decay = training_config['HUGGINGFACE_CONFIG']['weight_decay']
@@ -999,7 +992,7 @@ def get_training(model, training_config, scheduler_config, dataset_config, datas
         budget_segment = (f"w{_prefix_w // 1_000_000}M"
                           if _prefix_w % 1_000_000 == 0 else f"w{_prefix_w}")
     else:
-        budget_segment = f"tok{train_tokens_M}M"
+        budget_segment = f"tok{format_tokens(train_tokens)}"
     plateau_suffix = ("/plateau"
                       if training_config["CONFIG"].get("TRAIN_ALL")
                       and scheduler_config.get("TYPE") == "reduce_lr_on_plateau"
@@ -1030,7 +1023,7 @@ def get_training(model, training_config, scheduler_config, dataset_config, datas
     config = {
         "DATASET_CONFIG": dataset_config,
         "SCHEDULER_CONFIG": scheduler_config,
-        "TRAINING_CONFIG": altered_training_config,
+        "TRAINING_CONFIG": training_config,
         "TOKENIZER": tokenizer[0].abspath,
         "random_seed": random_seed,
         "train_dataset": train_data.abspath,
@@ -1051,7 +1044,7 @@ def get_training(model, training_config, scheduler_config, dataset_config, datas
                        for name in checkpoint_dir_names(training_config, dataset_config)]
 
     training_outputs = env.TrainModel(
-        source=model.as_source() + data_sources + [tokenizer, config_file, scheduler_file],
+        source=model.as_source() + data_sources + [tokenizer, config_file, scheduler_file, dataset_file],
         target=[f"{output_model_dir}/training_finished.flag"],
         MODEL=model.abspath,
         OUTPUT_DIR=output_model_dir,

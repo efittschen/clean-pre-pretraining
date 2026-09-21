@@ -8,8 +8,8 @@ from experiment_dsl import (
 RANDOM_SEEDS = [42]
 
 # Tiny budgets: ~2M tokens a stage at seq 512 / batch 8 is a few hundred steps.
-_A_TOKENS = 2_000_000
-_B_TOKENS = 2_000_000
+_A_TOKENS = 100_000
+_B_TOKENS = 100_000
 
 _TRAINING = dict(
     total_dev=200_000,
@@ -20,8 +20,8 @@ _TRAINING = dict(
     report_to="none",
     lr=5e-4,
     wd=0.1,
-    bf16=True,
-    fp16=False,
+    bf16=False,
+    fp16=True,
     adam_beta1=0.9,
     adam_beta2=0.999,
     adam_epsilon=1e-6,
